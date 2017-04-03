@@ -28,15 +28,15 @@ module Headbutt
 
     def task_queue
       queue = channel.queue(TASK_QUEUE)
-      queue.bind(task_exchange)
+      queue.bind(task_exchange) # done this way due to bug on the testing library where bind does not return self.
       queue
     end
 
     # This will be queue where will publish messages with TTL
     def task_retry_queue
-      channel
-        .queue(TASK_RETRY_QUEUE, arguments: { 'x-dead-letter-exchange': TASK_EXCHANGE })
-        .bind(task_retry_exchange)
+      queue = channel.queue(TASK_RETRY_QUEUE, arguments: { 'x-dead-letter-exchange': TASK_EXCHANGE })
+      queue.bind(task_retry_exchange) # done this way due to bug on the testing library where bind does not return self.
+      queue
     end
 
     private

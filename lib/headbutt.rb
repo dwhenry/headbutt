@@ -1,3 +1,5 @@
+require 'headbutt/middleware/chain'
+
 module Headbutt
   DEFAULTS = {
     error_handlers: [],
@@ -32,6 +34,28 @@ module Headbutt
     self.options[:error_handlers]
   end
 
+  def self.client_middleware
+    @client_chain ||= Headbutt::Middleware::Chain.new
+    yield @client_chain if block_given?
+    @client_chain
+  end
+
+  def self.server_middleware
+    @server_chain ||= default_server_middleware
+    yield @server_chain if block_given?
+    @server_chain
+  end
+
+  def self.default_server_middleware
+    require 'headbutt/middleware/server/retry_jobs'
+    require 'headbutt/middleware/server/logging'
+
+    Headbutt::Middleware::Chain.new do |m|
+      m.add Headbutt::Middleware::Server::Logging
+      m.add Headbutt::Middleware::Server::RetryJobs
+    end
+  end
+
   # We are shutting down Headbutt but what about workers that
   # are working on some long job?  This error is
   # raised in workers that have not finished within the hard
@@ -48,5 +72,7 @@ require 'headbutt/core_ext'
 require 'headbutt/logging'
 require 'headbutt/manager'
 require 'headbutt/processor'
+require 'headbutt/stats'
 require 'headbutt/runner'
 require 'headbutt/version'
+require 'headbutt/worker'

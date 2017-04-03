@@ -51,14 +51,15 @@ module Headbutt
 
     def process(payload)
       job_hash = Headbutt.load_json(payload)
-binding.pry
+# binding.pry
       klass  = job_hash['class'.freeze].constantize
       worker = klass.new
       worker.jid = job_hash['jid'.freeze]
 
-      stats(worker, job_hash, queue) do
+      Headbutt::Stats(worker, job_hash) do
         Headbutt.server_middleware.invoke(worker, job_hash) do
-          execute_job(worker, cloned(job_hash['args'.freeze]))
+          args = job_hash['args'.freeze]
+          worker.perform(*args)
         end
       end
     rescue Headbutt::Shutdown
