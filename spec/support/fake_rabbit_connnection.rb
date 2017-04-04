@@ -17,10 +17,15 @@ RSpec.configure do |config|
   config.include FakeRabbitConnection
 end
 
+# Remove once https://github.com/arempe93/bunny-mock/pull/30 has been merged
 module BunnyMock
   class Channel
     def ack(*args)
-      puts 'here it is'
+
+    end
+
+    def nack(*args)
+
     end
   end
 end

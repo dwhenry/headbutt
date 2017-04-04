@@ -1,72 +1,54 @@
 require 'spec_helper'
 
 RSpec.describe Headbutt::Processor do
-  context 'under the default config(ish)' do
-    before do
-      allow(Headbutt).to receive(:logger).and_return(double(warn: true, info: true))
-    end
+  before do
+    allow(Headbutt).to receive(:logger).and_return(double(warn: true, info: true))
+    subject.terminate # this stops us starting an infinite loop but requesting exit once the process has been run.
+  end
 
+  around do |example|
+    with_a_fake_rabbit_connnection do
+      example.run
+    end
+  end
+
+  context 'under the default config(ish)' do
     it 'can successfully execute tasks' do
       args = []
-      worker = build_worker do |name|
-        args << name
-      end
+      worker = build_test_worker { |name| args << name }
 
-      with_a_fake_rabbit_connnection do
-        message = {
-          class: worker.to_s,
-          jid: SecureRandom.uuid,
-          args: ['Apples'],
-        }
+      message = {
+        class: worker.to_s,
+        jid: SecureRandom.uuid,
+        args: ['Apples'],
+      }
 
-        Headbutt::BunnyManager.instance.task_queue.publish message.to_json
+      Headbutt::BunnyManager.instance.task_queue.publish message.to_json
+      subject.process_loop
 
-        subject.terminate # this stops us starting an infinite loop but requesting exit once the process has been run.
-        subject.process_loop
-
-        expect(args).to eq(['Apples'])
-      end
+      expect(args).to eq(['Apples'])
     end
 
     it 'will requeue failed tasks' do
-      worker = build_worker do |name|
-        raise StandardError
-      end
+      worker = build_test_worker { |_name| raise(StandardError) }
 
-      with_a_fake_rabbit_connnection do
-        message = {
-          class: worker.to_s,
-          jid: SecureRandom.uuid,
-          args: ['Apples'],
-        }
+      message = {
+        class: worker.to_s,
+        jid: SecureRandom.uuid,
+        args: ['Apples'],
+      }
 
-        Headbutt::BunnyManager.instance.task_queue.publish message.to_json
+      Headbutt::BunnyManager.instance.task_queue.publish message.to_json
+      expect { subject.process_loop }.to raise_error(StandardError)
 
-        subject.terminate # this stops us starting an infinite loop but requesting exit once the process has been run.
-        expect { subject.process_loop }.to raise_error(StandardError)
-
-        # would be nice if this would move the message back to the expected queue after the/a timeout
-        expect(Headbutt::BunnyManager.instance.task_retry_queue.message_count).to eq(1)
-      end
-
+      # would be nice if this would move the message back to the expected queue after the/a timeout
+      expect(Headbutt::BunnyManager.instance.task_retry_queue.message_count).to eq(1)
     end
   end
 
   context 'with a custom config that removes the retry code' do
-    it 'wont requeue failed tasks' do
+    xit 'wont requeue failed tasks' do
 
     end
-  end
-
-  def build_worker(&block)
-    name = 'TestWorker'
-    name << Time.now.to_i.to_s
-    name << '_'
-    name << rand(999).to_s
-    klass = Class.new do
-      include Headbutt::Worker
-      define_method :perform, &block
-    end
-    self.class.const_set(name, klass)
   end
 end
