@@ -76,3 +76,5 @@ require 'headbutt/stats'
 require 'headbutt/runner'
 require 'headbutt/version'
 require 'headbutt/worker'
+
+require 'headbutt/cli'

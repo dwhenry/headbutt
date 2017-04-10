@@ -4,7 +4,7 @@ module Headbutt
       @runner = runner
     end
 
-    def run
+    def start
       self_read, self_write = IO.pipe
 
       %w(INT TERM USR1 USR2 TTIN).each do |sig|

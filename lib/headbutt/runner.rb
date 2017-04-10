@@ -7,7 +7,7 @@ module Headbutt
       @options = options
     end
 
-    def run
+    def start
       # @thread = safe_thread("heartbeat", &method(:start_heartbeat))
       # @poller.start
 

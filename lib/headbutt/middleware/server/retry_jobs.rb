@@ -70,7 +70,7 @@ module Headbutt
           @max_retries = options.fetch(:max_retries, DEFAULT_MAX_RETRY_ATTEMPTS)
         end
 
-        def call(worker, job)
+        def call(worker, job, queue_manager)
           yield
         rescue Headbutt::Shutdown
           # ignore, will be pushed back onto queue during hard_shutdown

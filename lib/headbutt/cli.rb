@@ -23,7 +23,7 @@ module Headbutt
       @runner = @runner_klass.new(options)
       @runner = @trapper_klass.new(@runner) if @trapper_klass # allow trapper to be disabled in testing
 
-      @runner.run
+      @runner.start
     end
 
     def setup_options(args)
