@@ -1,30 +1,26 @@
 module RunInIsolation
-  TIMEOUT = 5
+  DEFAULT_TIMEOUT = 5
 
-  def run_in_isolation
+  def run_in_isolation(timeout: DEFAULT_TIMEOUT, &block)
     read, write = IO.pipe
-    result = nil
 
     pid = fork do
       read.close
-      write_result_to_buffer(write)
+      write_result_to_buffer(write, &block)
     end
 
     write.close
-    result = wait_for_buffer(read, pid, TIMEOUT)
+    result_str = wait_for_buffer(read, pid, timeout)
 
-    raise 'child failed' if result.empty?
-    result = Marshal.load(result)
-    if result.is_a?(Exception)
-      raise result
-    else
-      result
-    end
+    raise 'child failed' if result_str.empty?
+    result = Marshal.load(result_str)
+    raise(result) if result.is_a?(Exception)
+    result
   end
 
-  def write_result_to_buffer(buffer)
+  def write_result_to_buffer(buffer, &block)
     result =  begin
-        yield
+      block.call
       rescue => e
         e
       end
@@ -36,7 +32,7 @@ module RunInIsolation
     result = nil
     begin
       Timeout.timeout(timeout) do
-        result = read.read
+        result = buffer.read
         Process.wait(pid)
       end
     rescue Timeout::Error

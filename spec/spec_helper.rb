@@ -3,5 +3,5 @@ require "headbutt"
 require "pry"
 
 Dir['./spec/support/**/*.rb'].each do |f|
-  require f
+  require f unless f =~ /spec\.rb/
 end
