@@ -3,8 +3,8 @@ module Headbutt
     module Server
       class Logging
 
-        def call(worker, item)
-          Headbutt::Logging.with_context(log_context(worker, item)) do
+        def call(worker, job)
+          Headbutt::Logging.with_context(log_context(worker, job)) do
             begin
               start = Time.now
               logger.info("start".freeze)
@@ -21,9 +21,9 @@ module Headbutt
 
         # If we're using a wrapper class, like ActiveJob, use the "wrapped"
         # attribute to expose the underlying thing.
-        def log_context(worker, item)
-          klass = item['wrapped'.freeze] || worker.class.to_s
-          "#{klass} JID-#{item['jid'.freeze]}#{" BID-#{item['bid'.freeze]}" if item['bid'.freeze]}"
+        def log_context(worker, job)
+          klass = job['wrapped'.freeze] || worker.class.to_s
+          "#{klass} JID-#{job['jid'.freeze]}#{" BID-#{job['bid'.freeze]}" if job['bid'.freeze]}"
         end
 
         def elapsed(start)
