@@ -18,14 +18,31 @@ RSpec.describe Headbutt::Trapper do
 
   it 'When TERM signal is sent' do
     runner = runner_class.new('TERM')
+
     run_in_isolation(timeout: 1) do
       expect(runner).to receive(:start).and_call_original # need to send kill signal from within loop
       expect(runner).to receive(:stop)
+      expect(Headbutt.logger).to receive(:info).with('Got TERM signal')
       expect(Headbutt.logger).to receive(:info).with('Shutting down')
       expect(Headbutt.logger).to receive(:info).with('Bye!')
       trapper = Headbutt::Trapper.new(runner)
       trapper.start
-      runner.log
+    end
+
+    expect(forked_process_ended?).to be_truthy
+  end
+
+  it 'When INT signal is sent' do
+    runner = runner_class.new('INT')
+
+    run_in_isolation(timeout: 1) do
+      expect(runner).to receive(:start).and_call_original # need to send kill signal from within loop
+      expect(runner).to receive(:stop)
+      expect(Headbutt.logger).to receive(:info).with('Got INT signal')
+      expect(Headbutt.logger).to receive(:info).with('Shutting down')
+      expect(Headbutt.logger).to receive(:info).with('Bye!')
+      trapper = Headbutt::Trapper.new(runner)
+      trapper.start
     end
 
     expect(forked_process_ended?).to be_truthy
