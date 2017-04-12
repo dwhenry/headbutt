@@ -66,4 +66,12 @@ RSpec.describe RunInIsolation do
     end
     expect(error.backtrace[0]).to include("headbutt/spec/support/run_in_isolation_spec.rb:#{previous_line_num + 2}")
   end
+
+  it 'will correctly bubble rspec failures out of the forked process' do
+    expect {
+      run_in_isolation(timeout: 0.2) do
+        expect(false).to be_truthy
+      end
+    }.to raise_exception(RSpec::Expectations::ExpectationNotMetError)
+  end
 end
