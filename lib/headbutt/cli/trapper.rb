@@ -31,7 +31,7 @@ module Headbutt
         @runner.stop
         # Explicitly exit so busy Processor threads can't block
         # process shutdown.
-        Headbutt.logger.info "Bye!"
+        Headbutt.logger.info 'Bye!'
         exit(0)
       end
     end

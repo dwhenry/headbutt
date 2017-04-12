@@ -4,18 +4,25 @@ module RunInIsolation
   def run_in_isolation(timeout: DEFAULT_TIMEOUT, &block)
     read, write = IO.pipe
 
-    pid = fork do
+    @fork_pid = fork do
+      RSpec::Support.failure_notifier = lambda { |failure, _opts| write_result_to_buffer(write) { failure } }
       read.close
       write_result_to_buffer(write, &block)
     end
 
     write.close
-    result_str = wait_for_buffer(read, pid, timeout)
+    result_str = wait_for_buffer(read, @fork_pid, timeout)
 
-    raise 'child failed' if result_str.empty?
-    result = Marshal.load(result_str)
+    result = Marshal.load(result_str) if result_str != ''
     raise(result) if result.is_a?(Exception)
     result
+  end
+
+  def forked_process_ended?
+    Process.getpgid(@fork_pid)
+    false
+  rescue Errno::ESRCH
+    true
   end
 
   def write_result_to_buffer(buffer, &block)
