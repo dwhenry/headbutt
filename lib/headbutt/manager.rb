@@ -88,7 +88,7 @@ module Headbutt
       end
     end
 
-    def processor_died(processor, reason)
+    def processor_died(processor, _reason)
       @plock.synchronize do
         @workers.delete(processor)
         unless @done
@@ -114,6 +114,7 @@ module Headbutt
       end
 
       # This is not required for headbutt as task ack should mean item that aren't completed will autorequeue
+      # But it might be nice if we manually nack them that way they will go straught back on the queue.
       # if cleanup.size > 0
       #   jobs = cleanup.map {|p| p.job }.compact
       #

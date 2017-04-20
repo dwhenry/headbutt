@@ -31,18 +31,19 @@ module Headbutt
       manager = BunnyManager.instance
 
       manager.task_queue.subscribe(block: true, manual_ack: true) do |delivery_info, properties, payload|
-        ack = true
+        ack = false
         begin
           process(payload)
-          # ack if process was successful
+          ack = true
+
           return if @done
         rescue Headbutt::Shutdown
-          # don't ack in this case as task would not have been requeued
           ack = false
         ensure
           if ack
             manager.ack(delivery_info.delivery_tag)
           else
+            # tell rabbitmq to requeue teh message so we can try to process it again.
             manager.nack(delivery_info.delivery_tag, false, true)
           end
         end
