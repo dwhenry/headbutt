@@ -62,8 +62,9 @@ RSpec.describe Headbutt::Middleware::Chain do
     it 'correctly replaces middleware when using middleware with options in the initializer' do
       chain = described_class.new
       chain.add NonYieldingMiddleware
-      chain.add NonYieldingMiddleware, {:foo => 5}
-      expect(chain.count).to eq(1)
+      chain.add NonYieldingMiddleware, foo: 5
+      expect(chain.entries.count).to eq(1)
+      expect(chain.entries.last.args).to eq([foo: 5])
     end
 
     it 'correctly prepends middleware' do
@@ -84,6 +85,22 @@ RSpec.describe Headbutt::Middleware::Chain do
       chain.invoke { final_action = true }
       expect(final_action).to be_nil
       expect(recorder).to be_empty
+    end
+
+    it '`insert_before` an unknown middleware is the same as `prepend`' do
+      chain = described_class.new
+      chain_entries = chain.entries
+      chain.add CustomMiddleware
+      chain.insert_before AnotherCustomMiddleware, YetAnotherCustomMiddleware
+      expect(chain_entries.map(&:klass)).to eq([YetAnotherCustomMiddleware, CustomMiddleware])
+    end
+
+    it '`insert_after` an unknown middleware is the same as `add`' do
+      chain = described_class.new
+      chain_entries = chain.entries
+      chain.add CustomMiddleware
+      chain.insert_after AnotherCustomMiddleware, YetAnotherCustomMiddleware
+      expect(chain_entries.map(&:klass)).to eq([CustomMiddleware, YetAnotherCustomMiddleware])
     end
   end
 
