@@ -121,16 +121,28 @@ module Headbutt
         entries.clear
       end
 
-      def invoke(*args)
-        chain = retrieve.dup
-        traverse_chain = lambda do
-          if chain.empty?
-            yield
+      def invoke(*args, &block)
+        CallChain.new(retrieve, *args, &block).call
+      end
+
+      class CallChain
+        def initialize(chain, *args, &block)
+          @chain = chain.dup
+          @args = args
+          @block = block
+        end
+
+        def call
+          _callable
+        end
+
+        def _callable
+          if @chain.empty?
+            @block.call
           else
-            chain.shift.call(*args, &traverse_chain)
+            @chain.shift.call(*@args, &method(:_callable))
           end
         end
-        traverse_chain.call
       end
     end
 
