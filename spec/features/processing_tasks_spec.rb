@@ -2,7 +2,6 @@ require 'spec_helper'
 
 RSpec.describe Headbutt::Processor do
   before do
-    allow(Headbutt).to receive(:logger).and_return(double(warn: true, info: true))
     subject.terminate # this stops us starting an infinite loop but requesting exit once the process has been run.
   end
 

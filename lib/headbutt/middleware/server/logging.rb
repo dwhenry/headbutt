@@ -3,7 +3,7 @@ module Headbutt
     module Server
       class Logging
 
-        def call(worker, job)
+        def call(worker, job, _retry_manager)
           Headbutt::Logging.with_context(log_context(worker, job)) do
             begin
               start = Time.now

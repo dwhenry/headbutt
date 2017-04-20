@@ -51,13 +51,13 @@ module Headbutt
 
     def process(payload)
       job_hash = Headbutt.load_json(payload)
-# binding.pry
+
       klass  = job_hash['class'.freeze].constantize
       worker = klass.new
       worker.jid = job_hash['jid'.freeze]
 
       Headbutt::Stats(worker, job_hash) do
-        Headbutt.server_middleware.invoke(worker, job_hash) do
+        Headbutt.server_middleware.invoke(worker, job_hash, BunnyRetry.new) do
           args = job_hash['args'.freeze]
           worker.perform(*args)
         end
@@ -70,6 +70,20 @@ module Headbutt
       # ack if any error other than Shutdown as it would be requeued if required
       handle_exception(ex, { :context => "Job raised exception", :job => job_hash, :jobstr => payload })
       raise
+    end
+  end
+
+  class BunnyRetry
+    def initialize(manager = BunnyManager.instance)
+      @manager = manager
+    end
+
+    def retry(job, expiration)
+      @manager.task_retry_queue.publish(job, expiration: expiration)
+    end
+
+    def expire(job)
+
     end
   end
 end
