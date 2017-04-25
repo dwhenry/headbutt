@@ -18,9 +18,9 @@ module Headbutt
     def run
       process_loop
       @mgr.processor_stopped(self)
-    rescue Sidekiq::Shutdown
+    rescue Headbutt::Shutdown
       @mgr.processor_stopped(self)
-    rescue Exception => ex # rubocop: disable Lint/RescueException
+    rescue Exception => ex
       @mgr.processor_died(self, ex)
     end
 
@@ -40,7 +40,7 @@ module Headbutt
           if ack
             manager.ack(delivery_info.delivery_tag)
           else
-            # tell rabbitmq to requeue teh message so we can try to process it again.
+            # tell rabbitmq to requeue the message so we can try to process it again.
             manager.nack(delivery_info.delivery_tag, false, true)
           end
         end
