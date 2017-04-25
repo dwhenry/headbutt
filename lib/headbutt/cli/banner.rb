@@ -8,7 +8,7 @@ module Headbutt
     end
 
     def self.banner
-      %q{
+      <<-BANNER_END
 
                                     ~~~~
                                 =~?~~~
@@ -36,7 +36,7 @@ III77$ZZ8$7I78~I~~=+Z77$$77$7$.D=:
 ZDOOOO87?$ZIIO778D$+:,,.,,.?       |   _   |   |___|   _   |       | |_|   |       | |   |   |   |
 8MO888DD+=Z?77.Z777?I??+?===++     |__| |__|_______|__| |__|______||_______|_______| |___|   |___|
 8DDD8D8D7ZO~+~+,??IIIIII???++?+=   So I couldn't find a picture of a headbutt. but this is better right?
-}
+      BANNER_END
     end
   end
 end

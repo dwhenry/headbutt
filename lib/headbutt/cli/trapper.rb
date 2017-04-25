@@ -47,11 +47,11 @@ module Headbutt
         # Heroku sends TERM and then waits 10 seconds for process to exit.
         raise Interrupt
       when 'USR1'
-        Headbutt.logger.info "Received USR1, no longer accepting new work"
+        Headbutt.logger.info 'Received USR1, no longer accepting new work'
         @runner.quiet
       when 'USR2'
         if Headbutt.options[:logfile]
-          Headbutt.logger.info "Received USR2, reopening log file"
+          Headbutt.logger.info 'Received USR2, reopening log file'
           Headbutt::Logging.reopen_logs
         end
       when 'TTIN'
@@ -60,7 +60,7 @@ module Headbutt
           if thread.backtrace
             Headbutt.logger.warn thread.backtrace.join("\n")
           else
-            Headbutt.logger.warn "<no backtrace available>"
+            Headbutt.logger.warn '<no backtrace available>'
           end
         end
       end

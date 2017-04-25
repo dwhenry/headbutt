@@ -31,7 +31,7 @@ module Headbutt
     # return until all work is complete and cleaned up.
     # It can take up to the timeout to complete.
     def stop
-      deadline = Time.now + @options[:timeout]
+      deadline = Time.now.to_f + @options[:timeout]
 
       @done = true
       @manager.quiet

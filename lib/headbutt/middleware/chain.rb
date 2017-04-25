@@ -1,4 +1,3 @@
-# frozen_string_literal: true
 module Headbutt
   # Middleware is code configured to run before/after
   # a message is processed.  It is patterned after Rack
@@ -68,6 +67,7 @@ module Headbutt
       class NotFound < StandardError; end
 
       attr_reader :entries
+      delegate :clear, to: :entries
 
       def initialize_copy(copy)
         copy.instance_variable_set(:@entries, entries.dup)
@@ -102,10 +102,6 @@ module Headbutt
         remove(new_klass)
         i = entries.index { |entry| entry.klass == old_klass } || entries.count - 1
         entries.insert(i + 1, Entry.new(new_klass, *args))
-      end
-
-      def clear
-        entries.clear
       end
 
       def invoke(*args, &block)

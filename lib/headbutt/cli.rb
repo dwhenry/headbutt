@@ -8,7 +8,7 @@ module Headbutt
   class CLI
     include Headbutt::Util
 
-    def initialize(args=ARGV, runner: Headbutt::Runner, trapper: Headbutt::Trapper)
+    def initialize(args = ARGV, runner: Headbutt::Runner, trapper: Headbutt::Trapper)
       @runner_klass = runner
       @trapper_klass = trapper
       setup_options(args)
@@ -29,7 +29,7 @@ module Headbutt
     def setup_options(args)
       opts = OptionParser.parse(args)
 
-      set_environment opts[:environment]
+      self.environment = opts[:environment]
 
       # cfile = opts[:config_file]
       # opts = parse_config(cfile).merge(opts) if cfile
@@ -45,7 +45,7 @@ module Headbutt
       @options ||= Headbutt.options
     end
 
-    def set_environment(cli_env)
+    def environment=(cli_env)
       @environment = cli_env || ENV['RAILS_ENV'] || ENV['RACK_ENV'] || 'development'
     end
 
@@ -84,11 +84,10 @@ module Headbutt
     end
 
     def write_pid
-      if path = options[:pidfile]
-        pidfile = File.expand_path(path)
-        File.open(pidfile, 'w') do |f|
-          f.puts ::Process.pid
-        end
+      return unless options[:pidfile]
+      pidfile = File.expand_path(options[:pidfile])
+      File.open(pidfile, 'w') do |f|
+        f.puts ::Process.pid
       end
     end
   end

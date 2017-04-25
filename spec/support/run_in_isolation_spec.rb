@@ -70,17 +70,17 @@ RSpec.describe RunInIsolation do
       run_in_isolation(timeout: 0.2) do
         raise IsolationErrorTest
       end
-    rescue Exception => e
+    rescue => e
       error = e
     end
     expect(error.backtrace[0]).to include("#{__FILE__}:#{previous_line_num + 2}")
   end
 
   it 'will correctly bubble rspec failures out of the forked process' do
-    expect {
+    expect do
       run_in_isolation(timeout: 0.2) do
         expect(false).to be_truthy
       end
-    }.to raise_exception(RSpec::Expectations::ExpectationNotMetError)
+    end.to raise_exception(RSpec::Expectations::ExpectationNotMetError)
   end
 end

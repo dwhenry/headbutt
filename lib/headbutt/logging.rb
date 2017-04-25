@@ -5,13 +5,20 @@ require 'fcntl'
 
 module Headbutt
   module Logging
+    class ReopenLogsError < StandardError; end
 
     class Pretty < Logger::Formatter
-      SPACE = " "
+      SPACE = ' '
 
       # Provide a call() method that returns the formatted message.
-      def call(severity, time, program_name, message)
-        "#{time.utc.iso8601(3)} #{::Process.pid} TID-#{Thread.current.object_id.to_s(36)}#{context} #{severity}: #{message}\n"
+      def call(severity, time, _program_name, message)
+        [
+          time.utc.iso8601(3),
+          ::Process.pid,
+          "TID-#{Thread.current.object_id.to_s(36)}#{context}",
+          severity,
+          message
+        ].join(SPACE) + "\n"
       end
 
       def context
@@ -21,7 +28,7 @@ module Headbutt
     end
 
     class WithoutTimestamp < Pretty
-      def call(severity, time, program_name, message)
+      def call(severity, _time, _program_name, message)
         "#{::Process.pid} TID-#{Thread.current.object_id.to_s(36)}#{context} #{severity}: #{message}\n"
       end
     end
@@ -39,7 +46,7 @@ module Headbutt
       @logger = Logger.new(log_target)
       @logger.level = Logger::INFO
       @logger.formatter = ENV['DYNO'] ? WithoutTimestamp.new : Pretty.new
-      oldlogger.close if oldlogger && !$TESTING # don't want to close testing's STDOUT logging
+      oldlogger&.close
       @logger
     end
 
@@ -96,7 +103,7 @@ module Headbutt
       nr
     rescue RuntimeError => ex
       # RuntimeError: ObjectSpace is disabled; each_object will only work with Class, pass -X+O to enable
-      puts "Unable to reopen logs: #{ex.message}"
+      raise ReopenLogsError, "Unable to reopen logs: #{ex.message}"
     end
 
     def logger

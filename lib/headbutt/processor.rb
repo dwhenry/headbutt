@@ -1,11 +1,11 @@
-require "bunny" # don't forget to put gem "bunny" in your Gemfile
+require 'bunny'
 
 module Headbutt
   class Processor
     include Headbutt::Util
 
     def start
-      @thread ||= safe_thread("processor") { run }
+      @thread ||= safe_thread('processor') { run }
     end
 
     def terminate
@@ -13,30 +13,27 @@ module Headbutt
     end
 
     def kill
-
     end
 
     def run
-      begin
-        process_loop
-        @mgr.processor_stopped(self)
-      rescue Sidekiq::Shutdown
-        @mgr.processor_stopped(self)
-      rescue Exception => ex
-        @mgr.processor_died(self, ex)
-      end
+      process_loop
+      @mgr.processor_stopped(self)
+    rescue Sidekiq::Shutdown
+      @mgr.processor_stopped(self)
+    rescue Exception => ex # rubocop: disable Lint/RescueException
+      @mgr.processor_died(self, ex)
     end
 
     def process_loop
       manager = BunnyManager.instance
 
-      manager.task_queue.subscribe(block: true, manual_ack: true) do |delivery_info, properties, payload|
+      manager.task_queue.subscribe(block: true, manual_ack: true) do |delivery_info, _properties, payload|
         ack = false
         begin
           process(payload)
           ack = true
 
-          return if @done
+          break if @done
         rescue Headbutt::Shutdown
           ack = false
         ensure
@@ -69,7 +66,7 @@ module Headbutt
       raise
     rescue Exception => ex
       # ack if any error other than Shutdown as it would be requeued if required
-      handle_exception(ex, { :context => "Job raised exception", :job => job_hash, :jobstr => payload })
+      handle_exception(ex, context: 'Job raised exception', job: job_hash, jobstr: payload)
       raise
     end
   end
@@ -84,7 +81,6 @@ module Headbutt
     end
 
     def expire(job)
-
     end
   end
 end

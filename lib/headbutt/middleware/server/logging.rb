@@ -6,8 +6,8 @@ module Headbutt
         def call(worker, job, _retry_manager)
           Headbutt::Logging.with_context(log_context(worker, job)) do
             begin
-              start = Time.now
-              logger.info("start".freeze)
+              start = Time.now.to_f
+              logger.info('start')
               yield
               logger.info("done: #{elapsed(start)} sec")
             rescue Exception
@@ -27,7 +27,7 @@ module Headbutt
         end
 
         def elapsed(start)
-          (Time.now - start).round(3)
+          (Time.now.to_f - start).round(3)
         end
 
         def logger
@@ -37,4 +37,3 @@ module Headbutt
     end
   end
 end
-

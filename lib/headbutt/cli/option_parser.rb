@@ -10,15 +10,15 @@ module Headbutt
         #   opts[:concurrency] = Integer(arg)
         # end
 
-        o.on '-d', '--daemon', "Daemonize process" do |arg|
+        o.on '-d', '--daemon', 'Daemonize process' do |arg|
           opts[:daemon] = arg
         end
 
-        o.on '-e', '--environment ENV', "Application environment" do |arg|
+        o.on '-e', '--environment ENV', 'Application environment' do |arg|
           opts[:environment] = arg
         end
 
-        o.on '-g', '--tag TAG', "Process tag for procline" do |arg|
+        o.on '-g', '--tag TAG', 'Process tag for procline' do |arg|
           opts[:tag] = arg
         end
 
@@ -31,7 +31,7 @@ module Headbutt
         #   parse_queue opts, queue, weight
         # end
 
-        o.on '-r', '--require [PATH|DIR]', "Location of Rails application with workers or file to require" do |arg|
+        o.on '-r', '--require [PATH|DIR]', 'Location of Rails application with workers or file to require' do |arg|
           opts[:require] = arg
         end
 
@@ -39,7 +39,7 @@ module Headbutt
         #   opts[:timeout] = Integer(arg)
         # end
 
-        o.on "-v", "--verbose", "Print more verbose output" do |arg|
+        o.on '-v', '--verbose', 'Print more verbose output' do |arg|
           opts[:verbose] = arg
         end
 
@@ -51,17 +51,17 @@ module Headbutt
         #   opts[:logfile] = arg
         # end
 
-        o.on '-P', '--pidfile PATH', "path to pidfile" do |arg|
+        o.on '-P', '--pidfile PATH', 'path to pidfile' do |arg|
           opts[:pidfile] = arg
         end
 
-        o.on '-V', '--version', "Print version and exit" do |arg|
+        o.on '-V', '--version', 'Print version and exit' do |_arg|
           puts "Headbutt #{Headbutt::VERSION}"
           exit(0)
         end
       end
 
-      parser.banner = "sidekiq [options]"
+      parser.banner = 'headbutt [options]'
       # parser.on_tail "-h", "--help", "Show help" do
       #   logger.info parser
       #   exit 1
