@@ -52,7 +52,7 @@ module Headbutt
       def perform_in(interval, *args)
         int = interval.to_f
         now = Time.now.to_f
-        ts = (int < 1_000_000_000 ? now + int : int)
+        ts = (int < 1_000_000_000 ? int : int - now)
 
         item = { 'class' => self, 'args' => args, 'at' => ts }
 
@@ -97,7 +97,12 @@ module Headbutt
           jid: SecureRandom.uuid,
           created_at: Time.now.to_f,
         ).stringify_keys
-        Headbutt::BunnyManager.instance.task_queue.push job
+        if item['at']
+          # TODO: think about having a separate queue for delayed jobs rather than reusing the retry queue
+          Headbutt::BunnyManager.instance.task_retry_queue.publish job, expiration: expiration
+        else
+          Headbutt::BunnyManager.instance.task_queue.publish job
+        end
       end
     end
   end
