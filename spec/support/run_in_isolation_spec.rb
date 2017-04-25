@@ -11,6 +11,7 @@ RSpec.describe RunInIsolation do
     end
   end
   class IsolationErrorTest < StandardError; end
+  class IsolationExceptionTest < Exception; end
 
   it 'wont wait indefinitely' do
     expect do
@@ -53,6 +54,14 @@ RSpec.describe RunInIsolation do
     end.to raise_error(IsolationErrorTest)
   end
 
+  it 'will reraise Exceptions from the fork' do
+    expect do
+      run_in_isolation(timeout: 0.2) do
+        raise IsolationExceptionTest
+      end
+    end.to raise_error(IsolationExceptionTest)
+  end
+
   it 'raised errors will include the correct backtrace' do
     error = nil
     previous_line_num = nil
@@ -64,6 +73,14 @@ RSpec.describe RunInIsolation do
     rescue Exception => e
       error = e
     end
-    expect(error.backtrace[0]).to include("headbutt/spec/support/run_in_isolation_spec.rb:#{previous_line_num + 2}")
+    expect(error.backtrace[0]).to include("#{__FILE__}:#{previous_line_num + 2}")
+  end
+
+  it 'will correctly bubble rspec failures out of the forked process' do
+    expect {
+      run_in_isolation(timeout: 0.2) do
+        expect(false).to be_truthy
+      end
+    }.to raise_exception(RSpec::Expectations::ExpectationNotMetError)
   end
 end

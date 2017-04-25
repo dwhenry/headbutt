@@ -65,15 +65,12 @@ module Headbutt
   #
   module Middleware
     class Chain
-      include Enumerable
+      class NotFound < StandardError; end
+
       attr_reader :entries
 
       def initialize_copy(copy)
         copy.instance_variable_set(:@entries, entries.dup)
-      end
-
-      def each(&block)
-        entries.each(&block)
       end
 
       def initialize
@@ -86,56 +83,58 @@ module Headbutt
       end
 
       def add(klass, *args)
-        remove(klass) if exists?(klass)
+        remove(klass)
         entries << Entry.new(klass, *args)
       end
 
       def prepend(klass, *args)
-        remove(klass) if exists?(klass)
+        remove(klass)
         entries.insert(0, Entry.new(klass, *args))
       end
 
-      def insert_before(oldklass, newklass, *args)
-        i = entries.index { |entry| entry.klass == newklass }
-        new_entry = i.nil? ? Entry.new(newklass, *args) : entries.delete_at(i)
-        i = entries.index { |entry| entry.klass == oldklass } || 0
-        entries.insert(i, new_entry)
+      def insert_before(old_klass, new_klass, *args)
+        remove(new_klass)
+        i = entries.index { |entry| entry.klass == old_klass } || 0
+        entries.insert(i, Entry.new(new_klass, *args))
       end
 
-      def insert_after(oldklass, newklass, *args)
-        i = entries.index { |entry| entry.klass == newklass }
-        new_entry = i.nil? ? Entry.new(newklass, *args) : entries.delete_at(i)
-        i = entries.index { |entry| entry.klass == oldklass } || entries.count - 1
-        entries.insert(i+1, new_entry)
-      end
-
-      def exists?(klass)
-        any? { |entry| entry.klass == klass }
-      end
-
-      def retrieve
-        map(&:make_new)
+      def insert_after(old_klass, new_klass, *args)
+        remove(new_klass)
+        i = entries.index { |entry| entry.klass == old_klass } || entries.count - 1
+        entries.insert(i + 1, Entry.new(new_klass, *args))
       end
 
       def clear
         entries.clear
       end
 
-      def invoke(*args)
-        chain = retrieve.dup
-        traverse_chain = lambda do
-          if chain.empty?
-            yield
+      def invoke(*args, &block)
+        CallChain.new(entries.map(&:make_new), *args, &block).call
+      end
+
+      class CallChain
+        def initialize(chain, *args, &block)
+          @chain = chain.dup
+          @args = args
+          @block = block
+        end
+
+        def call
+          _callable
+        end
+
+        def _callable
+          if @chain.empty?
+            @block.call
           else
-            chain.shift.call(*args, &traverse_chain)
+            @chain.shift.call(*@args, &method(:_callable))
           end
         end
-        traverse_chain.call
       end
     end
 
     class Entry
-      attr_reader :klass
+      attr_reader :klass, :args
 
       def initialize(klass, *args)
         @klass = klass

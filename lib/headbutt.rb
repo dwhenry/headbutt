@@ -18,6 +18,7 @@ module Headbutt
   def self.load_json(string)
     JSON.parse(string)
   end
+
   def self.dump_json(object)
     JSON.generate(object)
   end

@@ -1,24 +1,21 @@
-# require 'sidekiq/scheduled'
-# require 'sidekiq/api'
-#
 module Headbutt
   module Middleware
     module Server
       ##
-      # Automatically retry jobs that fail in Sidekiq.
-      # Sidekiq's retry support assumes a typical development lifecycle:
+      # Automatically retry jobs that fail in Headbutt.
+      # Headbutt's retry support assumes a typical development lifecycle:
       #
       #   0. Push some code changes with a bug in it.
-      #   1. Bug causes job processing to fail, Sidekiq's middleware captures
+      #   1. Bug causes job processing to fail, Headbutt's middleware captures
       #      the job and pushes it onto a retry queue.
-      #   2. Sidekiq retries jobs in the retry queue multiple times with
+      #   2. Headbutt retries jobs in the retry queue multiple times with
       #      an exponential delay, the job continues to fail.
       #   3. After a few days, a developer deploys a fix. The job is
       #      reprocessed successfully.
-      #   4. Once retries are exhausted, Sidekiq will give up and move the
+      #   4. Once retries are exhausted, Headbutt will give up and move the
       #      job to the Dead Job Queue (aka morgue) where it must be dealt with
       #      manually in the Web UI.
-      #   5. After 6 months on the DJQ, Sidekiq will discard the job.
+      #   5. After 6 months on the DJQ, Headbutt will discard the job.
       #
       # A job looks like:
       #
@@ -48,16 +45,16 @@ module Headbutt
       # of retries. You can pass a value for the max number of retry attempts when
       # adding the middleware using the options hash:
       #
-      #   Sidekiq.configure_server do |config|
+      #   Headbutt.configure_server do |config|
       #     config.server_middleware do |chain|
-      #       chain.add Sidekiq::Middleware::Server::RetryJobs, :max_retries => 7
+      #       chain.add Headbutt::Middleware::Server::RetryJobs, :max_retries => 7
       #     end
       #   end
       #
       # or limit the number of retries for a particular worker with:
       #
       #    class MyWorker
-      #      include Sidekiq::Worker
+      #      include Headbutt::Worker
       #      sidekiq_options :retry => 10
       #    end
       #
@@ -70,27 +67,23 @@ module Headbutt
           @max_retries = options.fetch(:max_retries, DEFAULT_MAX_RETRY_ATTEMPTS)
         end
 
-        def call(worker, job, queue_manager)
+        def call(worker, job, retry_manager)
           yield
         rescue Headbutt::Shutdown
-          # ignore, will be pushed back onto queue during hard_shutdown
+          # ignore, will never send ack so will be retried in the future
           raise
         rescue Exception => e
-          # ignore, will be pushed back onto queue during hard_shutdown
+          # ignore, will never send ack so will be retried in the future
           raise Headbutt::Shutdown if exception_caused_by_shutdown?(e)
-          schedule_retry(worker, job, e)
+          schedule_retry(worker, job, e, retry_manager)
           raise e
-          # attempt_retry(worker, msg, queue, e)
         end
 
         private
 
-        def schedule_retry(worker, job, exception)
+        def schedule_retry(worker, job, exception, retry_manager)
           max_retry_attempts = retry_attempts_from(job['retry'], @max_retries)
-
-          payload = {
-
-          }
+          payload = {}
 
           count = if job['retry_count']
                     payload['retried_at'] = Time.now.to_f
@@ -100,7 +93,7 @@ module Headbutt
                     payload['retry_count'] = 0
                   end
 
-          if job['backtrace'] == true
+          if TrueClass === job['backtrace']
             payload['error_backtrace'] = exception.backtrace
           elsif !job['backtrace']
             # do nothing
@@ -113,66 +106,12 @@ module Headbutt
             expiration = expiration_for(worker, count, exception)
 
             # Publish to retry queue with new expiration
-            Headbutt::BunnyManager.instance.task_retry_queue.publish(
-              job.merge(payload),
-              expiration: expiration,
-            )
+            retry_manager.retry(job.merge(payload), expiration)
           else
-            # record the death of a salesperson.. :(
+            retry_manager.expire(job.merge(payload))
           end
         end
 
-        # def attempt_retry(worker, msg, queue, exception)
-        #   max_retry_attempts = retry_attempts_from(msg['retry'], @max_retries)
-        #
-        #   msg['queue'] = if msg['retry_queue']
-        #     msg['retry_queue']
-        #   else
-        #     queue
-        #   end
-        #
-        #   # App code can stuff all sorts of crazy binary data into the error message
-        #   # that won't convert to JSON.
-        #   m = exception.message.to_s[0, 10_000]
-        #   if m.respond_to?(:scrub!)
-        #     m.force_encoding("utf-8")
-        #     m.scrub!
-        #   end
-        #
-        #   msg['error_message'] = m
-        #   msg['error_class'] = exception.class.name
-        #   count = if msg['retry_count']
-        #     msg['retried_at'] = Time.now.to_f
-        #     msg['retry_count'] += 1
-        #   else
-        #     msg['failed_at'] = Time.now.to_f
-        #     msg['retry_count'] = 0
-        #   end
-        #
-        #   if msg['backtrace'] == true
-        #     msg['error_backtrace'] = exception.backtrace
-        #   elsif !msg['backtrace']
-        #     # do nothing
-        #   elsif msg['backtrace'].to_i != 0
-        #     msg['error_backtrace'] = exception.backtrace[0...msg['backtrace'].to_i]
-        #   end
-        #
-        #   if count < max_retry_attempts
-        #     delay = delay_for(worker, count, exception)
-        #     logger.debug { "Failure! Retry #{count} in #{delay} seconds" }
-        #     retry_at = Time.now.to_f + delay
-        #     payload = Sidekiq.dump_json(msg)
-        #     Sidekiq.redis do |conn|
-        #       conn.zadd('retry', retry_at.to_s, payload)
-        #     end
-        #   else
-        #     # Goodbye dear message, you (re)tried your best I'm sure.
-        #     retries_exhausted(worker, msg, exception)
-        #   end
-        #
-        #   raise exception
-        # end
-        #
         # def retries_exhausted(worker, msg, exception)
         #   logger.debug { "Retries exhausted for job" }
         #   begin
@@ -235,7 +174,6 @@ module Headbutt
           e.cause.instance_of?(Headbutt::Shutdown) ||
             exception_caused_by_shutdown?(e.cause, checked_causes)
         end
-
       end
     end
   end

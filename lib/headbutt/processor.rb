@@ -31,18 +31,19 @@ module Headbutt
       manager = BunnyManager.instance
 
       manager.task_queue.subscribe(block: true, manual_ack: true) do |delivery_info, properties, payload|
-        ack = true
+        ack = false
         begin
           process(payload)
-          # ack if process was successful
+          ack = true
+
           return if @done
         rescue Headbutt::Shutdown
-          # don't ack in this case as task would not have been requeued
           ack = false
         ensure
           if ack
             manager.ack(delivery_info.delivery_tag)
           else
+            # tell rabbitmq to requeue teh message so we can try to process it again.
             manager.nack(delivery_info.delivery_tag, false, true)
           end
         end
@@ -51,13 +52,13 @@ module Headbutt
 
     def process(payload)
       job_hash = Headbutt.load_json(payload)
-# binding.pry
+
       klass  = job_hash['class'.freeze].constantize
       worker = klass.new
       worker.jid = job_hash['jid'.freeze]
 
       Headbutt::Stats(worker, job_hash) do
-        Headbutt.server_middleware.invoke(worker, job_hash) do
+        Headbutt.server_middleware.invoke(worker, job_hash, BunnyRetry.new) do
           args = job_hash['args'.freeze]
           worker.perform(*args)
         end
@@ -70,6 +71,20 @@ module Headbutt
       # ack if any error other than Shutdown as it would be requeued if required
       handle_exception(ex, { :context => "Job raised exception", :job => job_hash, :jobstr => payload })
       raise
+    end
+  end
+
+  class BunnyRetry
+    def initialize(manager = BunnyManager.instance)
+      @manager = manager
+    end
+
+    def retry(job, expiration)
+      @manager.task_retry_queue.publish(job, expiration: expiration)
+    end
+
+    def expire(job)
+
     end
   end
 end
