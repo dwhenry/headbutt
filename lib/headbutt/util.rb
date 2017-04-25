@@ -4,7 +4,7 @@
 require 'socket'
 require 'securerandom'
 require 'headbutt/exception_handler'
-# require 'sidekiq/core_ext'
+require 'English'
 
 module Headbutt
   ##
@@ -18,7 +18,7 @@ module Headbutt
     def watchdog(last_words)
       yield
     rescue Exception => ex
-      handle_exception(ex, { context: last_words })
+      handle_exception(ex, context: last_words)
       raise ex
     end
 
@@ -27,14 +27,6 @@ module Headbutt
         watchdog(name, &block)
       end
     end
-
-    # def logger
-    #   Sidekiq.logger
-    # end
-    #
-    # def redis(&block)
-    #   Sidekiq.redis(&block)
-    # end
 
     def hostname
       ENV['DYNO'] || Socket.gethostname
@@ -45,17 +37,17 @@ module Headbutt
     end
 
     def identity
-      @@identity ||= "#{hostname}:#{$$}:#{process_nonce}"
+      @@identity ||= "#{hostname}:#{$PROCESS_ID}:#{process_nonce}"
     end
 
-    def fire_event(event, reverse=false)
+    def fire_event(event, reverse = false)
       arr = Headbutt.options[:lifecycle_events][event]
       arr.reverse! if reverse
       arr.each do |block|
         begin
           block.call
         rescue => ex
-          handle_exception(ex, { context: "Exception during Sidekiq lifecycle event.", event: event })
+          handle_exception(ex, context: 'Exception during Sidekiq lifecycle event.', event: event)
         end
       end
       arr.clear

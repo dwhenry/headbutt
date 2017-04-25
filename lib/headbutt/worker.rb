@@ -2,7 +2,6 @@
 require 'headbutt/core_ext'
 
 module Headbutt
-
   ##
   # Include this module in your worker class and you can easily create
   # asynchronous jobs:
@@ -24,7 +23,9 @@ module Headbutt
     attr_accessor :jid
 
     def self.included(base)
-      raise ArgumentError, "You cannot include Headbutt::Worker in an ActiveJob: #{base.name}" if base.ancestors.any? {|c| c.name == 'ActiveJob::Base' }
+      if base.ancestors.any? { |c| c.name == 'ActiveJob::Base' }
+        raise ArgumentError, "You cannot include Headbutt::Worker in an ActiveJob: #{base.name}"
+      end
 
       base.extend(ClassMethods)
       base.class_attribute :headbutt_options_hash
@@ -37,7 +38,6 @@ module Headbutt
     end
 
     module ClassMethods
-      
       def set(options)
         Thread.current[:headbutt_worker_set] = options
         self
@@ -52,16 +52,16 @@ module Headbutt
       def perform_in(interval, *args)
         int = interval.to_f
         now = Time.now.to_f
-        ts = (int < 1_000_000_000 ? now + int : int)
+        ts = (int < 1_000_000_000 ? int : int - now)
 
         item = { 'class' => self, 'args' => args, 'at' => ts }
 
         # Optimization to enqueue something now that is scheduled to go out now or in the past
-        item.delete('at'.freeze) if ts <= now
+        item.delete('at') if ts <= now
 
         client_push(item)
       end
-      alias_method :perform_at, :perform_in
+      alias perform_at perform_in
 
       ##
       # Allows customization for this type of Worker.
@@ -76,7 +76,7 @@ module Headbutt
       #
       # In practice, any option is allowed.  This is the main mechanism to configure the
       # options for a specific job.
-      def headbutt_options(opts={})
+      def headbutt_options(opts = {})
         self.headbutt_options_hash = get_headbutt_options.merge(opts.stringify_keys)
       end
 
@@ -97,7 +97,12 @@ module Headbutt
           jid: SecureRandom.uuid,
           created_at: Time.now.to_f,
         ).stringify_keys
-        Headbutt::BunnyManager.instance.task_queue.push job
+        if item['at']
+          # TODO: think about having a separate queue for delayed jobs rather than reusing the retry queue
+          Headbutt::BunnyManager.instance.task_retry_queue.publish job, expiration: expiration
+        else
+          Headbutt::BunnyManager.instance.task_queue.publish job
+        end
       end
     end
   end

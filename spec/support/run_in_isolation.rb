@@ -19,7 +19,7 @@ module RunInIsolation
       # testing process. This could also be done with rescue but as
       # rspec provides a clean way of doing this we should definitely
       # use it.
-      RSpec::Support.failure_notifier = Proc.new  do |failure, _opts|
+      RSpec::Support.failure_notifier = proc do |failure, _opts|
         write_result_to_buffer(write, timeout) { failure }
       end
       read.close
@@ -42,10 +42,10 @@ module RunInIsolation
     true
   end
 
-  def write_result_to_buffer(buffer, timeout, &block)
-    result =  begin
+  def write_result_to_buffer(buffer, timeout)
+    result = begin
         Timeout.timeout(timeout) do # timeout in the forked process as this will make testing cleaner
-          block.call
+          yield
         end
       rescue Exception => e
         e

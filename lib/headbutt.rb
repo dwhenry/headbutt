@@ -1,3 +1,4 @@
+require 'headbutt/core_ext'
 require 'headbutt/middleware/chain'
 
 module Headbutt
@@ -9,7 +10,7 @@ module Headbutt
       shutdown: [],
       heartbeat: [],
     },
-  }
+  }.freeze
 
   def self.options
     @options ||= DEFAULTS.dup
@@ -32,7 +33,7 @@ module Headbutt
   end
 
   def self.error_handlers
-    self.options[:error_handlers]
+    options[:error_handlers]
   end
 
   def self.client_middleware
@@ -69,7 +70,6 @@ require 'json'
 require 'headbutt/util'
 
 require 'headbutt/bunny_manager'
-require 'headbutt/core_ext'
 require 'headbutt/logging'
 require 'headbutt/manager'
 require 'headbutt/processor'

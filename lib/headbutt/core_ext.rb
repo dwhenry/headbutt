@@ -1,4 +1,3 @@
-# frozen_string_literal: true
 begin
   require 'active_support/core_ext/class/attribute'
 rescue LoadError
@@ -103,7 +102,6 @@ rescue LoadError
   end if !"".respond_to?(:constantize)
 end
 
-
 begin
   require 'active_support/core_ext/kernel/reporting'
 rescue LoadError
@@ -114,6 +112,42 @@ rescue LoadError
       yield
     ensure
       $VERBOSE = old_verbose
+    end
+  end
+end
+
+begin
+  require 'active_support/core_ext/module/delegation'
+rescue LoadError
+  class Module
+    class DelegationError < NoMethodError; end
+
+    def delegate(*methods, to:)
+      location = caller_locations(1, 1).first
+      file, line = location.path, location.lineno
+
+      to = to.to_s
+
+      methods.each do |method|
+        definition = (method =~ /[^\]]=$/) ? 'arg' : '*args, &block'
+
+        exception = %(raise DelegationError, "#{self}##{method} delegated to #{to}.#{method}, but #{to} is nil: \#{self.inspect}")
+
+        method_def = <<-DEF.split("\n").join(';')
+          def #{method}(#{definition})
+            _ = #{to}
+              _.#{method}(#{definition})
+          rescue NoMethodError => e
+            if _.nil? && e.name == :#{method}
+              #{exception}
+            else
+              raise
+            end
+          end
+        DEF
+
+        module_eval(method_def, file, line)
+      end
     end
   end
 end

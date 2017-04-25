@@ -7,7 +7,6 @@ require 'thread'
 require 'set'
 
 module Headbutt
-
   ##
   # The Manager is the central coordination point in Sidekiq, controlling
   # the lifecycle of the Processors and feeding them jobs as necessary.
@@ -28,7 +27,7 @@ module Headbutt
     attr_reader :workers
     attr_reader :options
 
-    def initialize(options={})
+    def initialize(options = {})
       logger.debug { options.inspect }
       @options = options
       @count = options[:concurrency] || 25
@@ -36,28 +35,24 @@ module Headbutt
 
       @done = false
       @workers = Set.new
-      @count.times do
-        @workers << Processor.new(self)
-      end
+      @count.times { @workers << Processor.new(self) }
       @plock = Mutex.new
     end
 
     def start
-      @workers.each do |x|
-        x.start
-      end
+      @workers.each(&:start)
     end
 
     def quiet
       return if @done
       @done = true
 
-      logger.info { "Terminating quiet workers" }
-      @workers.each { |x| x.terminate }
+      logger.info { 'Terminating quiet workers' }
+      @workers.each(&:terminate)
       fire_event(:quiet, true)
     end
 
-    # hack for quicker development / testing environment #2774
+    # HACK: for quicker development / testing environment #2774
     PAUSE_TIME = STDOUT.tty? ? 0.1 : 0.5
 
     def stop(deadline)
@@ -70,12 +65,12 @@ module Headbutt
       sleep PAUSE_TIME
       return if @workers.empty?
 
-      logger.info { "Pausing to allow workers to finish..." }
-      remaining = deadline - Time.now
+      logger.info { 'Pausing to allow workers to finish...' }
+      remaining = deadline - Time.now.to_f
       while remaining > PAUSE_TIME
         return if @workers.empty?
         sleep PAUSE_TIME
-        remaining = deadline - Time.now
+        remaining = deadline - Time.now.to_f
       end
       return if @workers.empty?
 
@@ -131,9 +126,7 @@ module Headbutt
       #   strategy.bulk_requeue(jobs, @options)
       # end
 
-      cleanup.each do |processor|
-        processor.kill
-      end
+      cleanup.each(&:kill)
     end
   end
 end

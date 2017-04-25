@@ -1,10 +1,10 @@
 module Headbutt
   class BunnyManager
-    TASK_EXCHANGE = 'task_exchange'
-    TASK_RETRY_EXCHANGE = 'task_retry_exchange'
+    TASK_EXCHANGE = 'task_exchange'.freeze
+    TASK_RETRY_EXCHANGE = 'task_retry_exchange'.freeze
 
-    TASK_QUEUE = 'task_queue'
-    TASK_RETRY_QUEUE = 'task_retry_queue'
+    TASK_QUEUE = 'task_queue'.freeze
+    TASK_RETRY_QUEUE = 'task_retry_queue'.freeze
 
     def self.instance
       @instance ||= new
@@ -46,7 +46,7 @@ module Headbutt
     end
 
     def task_exchange
-      channel.fanout(TASK_EXCHANGE,  durable: true)
+      channel.fanout(TASK_EXCHANGE, durable: true)
     end
 
     def task_retry_exchange

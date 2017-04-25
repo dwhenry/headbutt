@@ -13,7 +13,7 @@ module Headbutt
 
     def self.record(worker, job_hash)
       tid = thread_identity
-      WORKER_STATE[tid] = { :payload => job_hash, :run_at => Time.now.to_i }
+      WORKER_STATE[tid] = { payload: job_hash, run_at: Time.now.to_i }
 
       begin
         yield

@@ -52,9 +52,9 @@ RSpec.describe Headbutt::Middleware::Chain do
       msg = {
         'class' => CustomWorker.to_s,
         'args' => [recorder],
-        'jid' => SecureRandom.uuid
+        'jid' => SecureRandom.uuid,
       }
-      allow(Headbutt).to receive(:load_json).and_return(msg) # hack to skip JSON serialization/deserialization
+      allow(Headbutt).to receive(:load_json).and_return(msg) # HACK: to skip JSON serialization/deserialization
       processor.process(Headbutt.dump_json(msg))
       expect(recorder.flatten).to eq(%w(2 before 3 before 1 before work_performed 1 after 3 after 2 after))
     end

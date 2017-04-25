@@ -1,0 +1,60 @@
+AllCops:
+  Exclude:
+    - 'bin/*'
+    - 'vendor/**/*'
+    - 'lib/headbutt/core_ext.rb'
+
+  TargetRubyVersion: 2.3
+
+Documentation:
+  Enabled: false
+
+Lint/HandleExceptions:
+  Exclude:
+    - Rakefile
+
+Metrics/LineLength:
+  Max: 120
+
+Rails:
+  Enabled: false
+
+Style/FileName:
+  Exclude:
+    - bin/scss-lint
+
+Style/RescueModifier:
+  Enabled: false
+
+Style/TrivialAccessors:
+  Enabled: false
+
+AmbiguousOperator:
+  Enabled: false
+
+Style/FrozenStringLiteralComment:
+  Enabled: false
+
+Style/EmptyMethod:
+  Enabled: false
+
+Style/TrailingCommaInArguments:
+  EnforcedStyleForMultiline: comma
+
+Style/TrailingCommaInLiteral:
+  EnforcedStyleForMultiline: comma
+
+Rails/NotNullColumn:
+  Enabled: false
+
+Metrics/BlockLength:
+  Exclude:
+    - spec/**/*
+    - config/routes.rb
+
+Metrics/MethodLength:
+  Exclude:
+    - db/migrate/*
+
+Metrics/AbcSize:
+  Max: 16
